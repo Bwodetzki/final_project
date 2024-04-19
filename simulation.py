@@ -52,8 +52,8 @@ def satellite_sim(sat1_state, sat2_state, tf, dt, moment=False):
     Q = np.diag([1, 1, 1, 1, 1, 1])
     R = np.diag([1e4, 1e4, 1e4])
     Rd = np.diag([1e6, 1e6, 1e6])
-    # R = np.diag([1e-2, 1e-2, 1e-2])
-    # Rd = np.diag([1e4, 1e4, 1e4])
+    R = np.diag([1e-2, 1e-2, 1e-2])
+    Rd = np.diag([1e4, 1e4, 1e4])
     # B matrix describing effect of control
     B = np.block([[np.zeros((3, 3))],
                   [np.eye(3)*dt/m2]])
@@ -74,13 +74,13 @@ def satellite_sim(sat1_state, sat2_state, tf, dt, moment=False):
     K.setup()
 
     # Initialize Initial Attitude
-    thrust_vec = K.output()
-    current_attitude = Rotation.from_matrix(sat2_state[6:15].reshape(3, 3))
-    desired_attitude = vec2att(thrust_vec, current_attitude.as_matrix())
-    sat2_state[6:15] = desired_attitude.flatten()
+    # thrust_vec = K.output()
+    # current_attitude = Rotation.from_matrix(sat2_state[6:15].reshape(3, 3))
+    # desired_attitude = vec2att(thrust_vec, current_attitude.as_matrix())
+    # sat2_state[6:15] = desired_attitude.flatten()
 
     ## Initialize Attitude Controller
-    attitude_controller = partial(attitude_controller_v2, kp=100, kd=10)
+    attitude_controller = partial(attitude_controller_v2, kp=100, kd=25)
     # attitude_controller = partial(attitude_controller_v2, kp=np.array((100, 100, 500)), kd=np.array((10, 10, 50)))
 
     ## Pre-sim Initializations
