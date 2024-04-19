@@ -5,6 +5,9 @@ from scipy.spatial.transform import Rotation
 from helper_func import skew
 import sympy as sy
 
+def saturate(vec, limit=10):
+    return np.array([v if abs(v)<limit else 10*np.sign(v) for v in vec])
+
 def calc_orn_error(corn, dorn):
     error_num = dorn*(np.dot(corn, corn) - 1) + corn*(1 - np.dot(dorn, dorn)) + 2*skew(dorn)@corn
     error_den = 1 + np.dot(dorn, dorn)*np.dot(corn, corn) + 2*np.dot(dorn, corn)
@@ -36,12 +39,29 @@ def attitude_controller_v2(curr_orn, desired_orn, curr_omega, kp=10, kd=10):
     # corn = curr_orn.as_quat(canonical=True)
     # dorn = desired_orn.as_quat(canonical=True)
 
-    eorn = curr_orn*desired_orn.inv()
-    eorn = eorn.as_mrp()
+    eorn = desired_orn.inv()*curr_orn
+    # eorn = eorn.as_mrp()
+    eorn = eorn.as_quat()
     # eorn = curr_orn.as_quat(canonical=True)
     # eorn = dorn*quat_inv(corn)
+    torque = -kp*eorn[:3] - kd*curr_omega
 
-    return -kp*eorn[:3] - kd*curr_omega
+    return saturate(torque, limit=10)
+
+def attitude_controller_v3(curr_orn, desired_orn, curr_omega, int_args, kp=10, kd=10, ki=1):
+    # corn = curr_orn.as_quat(canonical=True)
+    # dorn = desired_orn.as_quat(canonical=True)
+    prev_quat, prev_int = int_args
+
+    eorn = desired_orn.inv()*curr_orn
+    # eorn = eorn.as_mrp()
+    eorn = eorn.as_quat()
+    integrated_quat = 1/2*(eorn[:3] - prev_quat) + prev_quat + prev_int
+    # eorn = curr_orn.as_quat(canonical=True)
+    # eorn = dorn*quat_inv(corn)
+    torque = -kp*eorn[:3] - kd*curr_omega + ki*integrated_quat
+
+    return torque, (eorn[:3], integrated_quat)
 
 def CW_model(n, dt):
     Phi_rr = np.array([[4-3*np.cos(n*dt)       , 0, 0           ],

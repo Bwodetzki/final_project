@@ -83,6 +83,11 @@ def attitude_wheels(t, y, M_w, I, I_wheels):
     wheel_dyn = wheel_dynamics(t, y[12:], -M_w, I_wheels)
     return np.concatenate((att_dyn, wheel_dyn))
 
+def attitude_wheels_moment(t, y, M_w, I, I_wheels, mu, r):
+    att_dyn = attitude_dynamics_w_moment(t, y[:12], M_w, I, mu, r)
+    wheel_dyn = wheel_dynamics(t, y[12:], -M_w, I_wheels)
+    return np.concatenate((att_dyn, wheel_dyn))
+
 def full_sat(t, y, args):
     F, M, m, I, mu, I_wheels = args
     rot_m = y[6:15].reshape(3, 3)
@@ -120,9 +125,9 @@ def main():
     y0_orbit = np.array([y10, 0, 0, 0, y2d0, 0])
 
     y0_rmat = np.eye(3).reshape(-1)
-    y0_w = np.array([0., 0., 0.])
+    y0_w = np.array([0.0, 0., 0.])
     y0_attitude = np.concatenate((y0_rmat, y0_w))
-    y0_wheels = np.array((0., 0., 0.))
+    y0_wheels = np.array((0., 0., 0., 0., 0., 0.))
 
     y0 = np.concatenate((y0_orbit, y0_rmat, y0_w, y0_wheels))
 
@@ -147,51 +152,20 @@ def main():
     # y_sol = sol.y.T
     ####
     # args_attitude = (M_w, I, mu, np.array([7_000., 0., 1]))
-
+    # # args_attitude = (M_w, I)
     # sol = solve_ivp(attitude_dynamics_w_moment, tspan, y0_attitude, t_eval=t_eval, args=args_attitude, **options)
     # y_sol = sol.y.T
-
-    # # tranform data to euler angles 
-    # angles = np.zeros((len(y_sol), 3))
-    # dets = np.zeros((len(y_sol)))
-    # for i,sol in enumerate(y_sol):
-    #     r_mat = sol[:9].reshape(3, 3)
-    #     print(nlg.det(r_mat))
-    #     r = Rotation.from_matrix(r_mat)
-    #     euler_angles = r.as_euler('xyz', degrees=True)
-    #     angles[i, :] = euler_angles
-    #     dets[i] = nlg.det(r_mat)
-
-    # fig, ax1 = plt.subplots(1, 3)
-    # ax1[0].plot(angles[:, 0])
-    # ax1[1].plot(angles[:, 1])
-    # ax1[2].plot(angles[:, 2])
-
-    # fig, ax2 = plt.subplots(1, 3)
-    # ax2[0].plot(y_sol[:, 9])
-    # ax2[1].plot(y_sol[:, 10])
-    # ax2[2].plot(y_sol[:, 11])
-
-    # fig, ax3 = plt.subplots()
-    # ax3.plot(dets)
-
-    #######
-    args = ((F, M_w, m, I, mu, I_wheels),)
-
-    sol = solve_ivp(full_sat_moment, tspan, y0, t_eval=t_eval, args=args, **options)
+    ####
+    args_attitude = (M_w, I, I_wheels, mu, np.array([7_000., 0., 1]))
+    sol = solve_ivp(attitude_wheels_moment, tspan, np.concatenate((y0_attitude, y0_wheels)), t_eval=t_eval, args=args_attitude, **options)
     y_sol = sol.y.T
 
-    fig = plt.figure()
-    ax = fig.add_subplot(projection='3d')
-    plot_sphere(ax, r_e)
-    ax.plot(y_sol[:, 0], y_sol[:, 1], y_sol[:, 2]) 
-    ax.axis('equal')
-    
     # tranform data to euler angles 
     angles = np.zeros((len(y_sol), 3))
     dets = np.zeros((len(y_sol)))
     for i,sol in enumerate(y_sol):
-        r_mat = sol[6:15].reshape(3, 3)
+        r_mat = sol[:9].reshape(3, 3)
+        print(nlg.det(r_mat))
         r = Rotation.from_matrix(r_mat)
         euler_angles = r.as_euler('xyz', degrees=True)
         angles[i, :] = euler_angles
@@ -203,17 +177,52 @@ def main():
     ax1[2].plot(angles[:, 2])
 
     fig, ax2 = plt.subplots(1, 3)
-    ax2[0].plot(y_sol[:, 15])
-    ax2[1].plot(y_sol[:, 16])
-    ax2[2].plot(y_sol[:, 17])
+    ax2[0].plot(y_sol[:, 9])
+    ax2[1].plot(y_sol[:, 10])
+    ax2[2].plot(y_sol[:, 11])
 
-    fig, ax3 = plt.subplots()
-    ax3.plot(dets)
+    # fig, ax3 = plt.subplots()
+    # ax3.plot(dets)
 
-    fig, ax4 = plt.subplots(1, 3)
-    ax4[0].plot(y_sol[:, 18])
-    ax4[1].plot(y_sol[:, 19])
-    ax4[2].plot(y_sol[:, 20])
+    #######
+    # args = ((F, M_w, m, I, mu, I_wheels),)
+
+    # sol = solve_ivp(full_sat_moment, tspan, y0, t_eval=t_eval, args=args, **options)
+    # y_sol = sol.y.T
+
+    # fig = plt.figure()
+    # ax = fig.add_subplot(projection='3d')
+    # plot_sphere(ax, r_e)
+    # ax.plot(y_sol[:, 0], y_sol[:, 1], y_sol[:, 2]) 
+    # ax.axis('equal')
+    
+    # # tranform data to euler angles 
+    # angles = np.zeros((len(y_sol), 3))
+    # dets = np.zeros((len(y_sol)))
+    # for i,sol in enumerate(y_sol):
+    #     r_mat = sol[6:15].reshape(3, 3)
+    #     r = Rotation.from_matrix(r_mat)
+    #     euler_angles = r.as_euler('xyz', degrees=True)
+    #     angles[i, :] = euler_angles
+    #     dets[i] = nlg.det(r_mat)
+
+    # fig, ax1 = plt.subplots(1, 3)
+    # ax1[0].plot(angles[:, 0])
+    # ax1[1].plot(angles[:, 1])
+    # ax1[2].plot(angles[:, 2])
+
+    # fig, ax2 = plt.subplots(1, 3)
+    # ax2[0].plot(y_sol[:, 15])
+    # ax2[1].plot(y_sol[:, 16])
+    # ax2[2].plot(y_sol[:, 17])
+
+    # fig, ax3 = plt.subplots()
+    # ax3.plot(dets)
+
+    # fig, ax4 = plt.subplots(1, 3)
+    # ax4[0].plot(y_sol[:, 18])
+    # ax4[1].plot(y_sol[:, 19])
+    # ax4[2].plot(y_sol[:, 20])
 
     plt.show()
 

@@ -18,6 +18,13 @@ class Arrow3D(FancyArrowPatch):
 
         return np.min(zs)
 
+def normalize(rotmat):
+    rotmat = rotmat.reshape(3, 3)
+    for i in range(3):
+        rotmat[:, i] = rotmat[:, i]/nlg.norm(rotmat[:, i])
+    return rotmat.flatten()
+
+
 def skew(vec):
     return np.array([[0      , -vec[2], vec[1] ],
                      [vec[2] , 0      , -vec[0]],
@@ -31,7 +38,7 @@ def vec2att(vec, att):
     vec = vec / nlg.norm(vec)
     v3 = np.cross(vec, att[:, 1])
     v2 = np.cross(v3, vec)
-    new_mat = np.array([vec, v2, v3])
+    new_mat = np.array([vec, v2/nlg.norm(v2), v3/nlg.norm(v3)]).T
     return new_mat
 
 def visualize_orn(rot_mat, ax, c='b'):
