@@ -18,7 +18,7 @@ def deorbit(t, y, args):
     
 def orbit_dynamics(t, y, F, m, mu):
     r_mag = nlg.norm(y[:3])
-    rdd = -mu/r_mag**3 * y[:3] + F/m
+    rdd = -mu/r_mag**3 * y[:3] + F/m/1000
 
     # yd = np.zeros((len(y)))
     # yd[:3] = y[3:6]
