@@ -50,15 +50,15 @@ def satellite_sim(sat1_state, sat2_state, tf, dt, moment=False):
     ## Initialize Orbit Controller
     # Controller Weights
     Q = np.diag([1, 1, 1, 1, 1, 1])
-    R = np.diag([1e4, 1e4, 1e4])
-    Rd = np.diag([1e6, 1e6, 1e6])
+    # R = np.diag([1e4, 1e4, 1e4])
+    # Rd = np.diag([1e6, 1e6, 1e6])
     R = np.diag([1e-2, 1e-2, 1e-2])
     Rd = np.diag([1e4, 1e4, 1e4])
     # B matrix describing effect of control
-    B = np.block([[np.zeros((3, 3))],
-                  [np.eye(3)*dt/m2]])
     # B = np.block([[np.zeros((3, 3))],
-    #               [np.eye(3)*dt/m2/1000]])
+    #               [np.eye(3)*dt/m2]])
+    B = np.block([[np.zeros((3, 3))],
+                  [np.eye(3)*dt/m2/1000]])
     # Find Clohessy Wiltshire model
     at = nlg.norm(sat1_state[:3]) # Assumes circular orbit
     n = np.sqrt(MU/at**3) # This value should be non-dimensional for distance (m and km) so no conversion either way is necesarry as long as they are consistant
@@ -67,6 +67,8 @@ def satellite_sim(sat1_state, sat2_state, tf, dt, moment=False):
     dx = sat2_state[:6] - sat1_state[:6] # Initialization
     umin = -1*np.ones(3) # minimum thrust
     umax = 1*np.ones(3) # maximum thrust
+    umin = -0.001*np.ones(3) # minimum thrust
+    umax = 0.001*np.ones(3) # maximum thrust
     Np = int(tf/dt * (0.3)) # Horizon is a fraction of simulation steps
     K = MPCController(CW_mat, B, Np=Np, x0=dx,
                   Qx=Q, Qu=R,QDu=Rd,
@@ -357,7 +359,7 @@ def orbit_control_sat_sim_MPC(sat1_state, sat2_state, tf, dt):
     Rd = np.diag([1e6, 1e6, 1e6])
     umin = -10*np.ones(3)
     umax = 10*np.ones(3)
-    Np = int(tf/dt * (0.1)) # Horizon is a fraction of simulation steps
+    Np = int(tf/dt * (0.005)) # Horizon is a fraction of simulation steps
     K = K = MPCController(CW_mat, B, Np=Np, x0=dx,
                   Qx=Q, Qu=R,QDu=Rd,
                   umin=umin,umax=umax)
@@ -429,7 +431,7 @@ def main():
     mu = 398600.4418
     y10 = r_e + 408.773
     y2d0 = np.sqrt(mu/y10)
-    R = Rotation.from_euler('xyz', [0, 0, 0.1], degrees=True)
+    R = Rotation.from_euler('xyz', [0, 0, 0.01], degrees=True)
     sat1_state = np.array([y10, 0, 0, 0, y2d0, 0])
     sat2_state_pos = block_diag(R.as_matrix(),R.as_matrix()) @ np.array([y10, 0, 0, 0, y2d0, 0])
     
@@ -439,7 +441,7 @@ def main():
     init_w = np.array((0.0, 0.0, 0.0)) # np.zeros((3,))
     sat2_state = np.concatenate((sat2_state_pos, init_rot, init_w))
 
-    satellite_sim(sat1_state, sat2_state, tf=150, dt=.1)
+    satellite_sim(sat1_state, sat2_state, tf=1500, dt=.05)
 
 if __name__ == "__main__":
     main()
