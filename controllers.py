@@ -28,6 +28,21 @@ def attitude_controller(curr_orn, desired_orn, curr_omega, desired_omega, J, p=7
     torques = term1 + term2 + term3 + term4
     return torques
 
+def quat_inv(quat):
+    quat[:3] = -quat[:3]
+    return quat/nlg.norm(quat)
+
+def attitude_controller_v2(curr_orn, desired_orn, curr_omega, kp=10, kd=10):
+    # corn = curr_orn.as_quat(canonical=True)
+    # dorn = desired_orn.as_quat(canonical=True)
+
+    eorn = curr_orn*desired_orn.inv()
+    eorn = eorn.as_mrp()
+    # eorn = curr_orn.as_quat(canonical=True)
+    # eorn = dorn*quat_inv(corn)
+
+    return -kp*eorn[:3] - kd*curr_omega
+
 def CW_model(n, dt):
     Phi_rr = np.array([[4-3*np.cos(n*dt)       , 0, 0           ],
                        [6*(np.sin(n*dt) - n*dt), 1, 0           ],

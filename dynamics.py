@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 from scipy.integrate  import solve_ivp
 from scipy.spatial.transform import Rotation
 from helper_func import skew
+from controllers import attitude_controller
 
 def plot_sphere(ax, r=1, cmap=plt.cm.YlGnBu_r):
     u, v = np.mgrid[0:2 * np.pi:30j, 0:np.pi:20j]
@@ -31,11 +32,29 @@ def attitude_dynamics_no_moment(t, y, M_w, I):
 
     rd = (r_mat @ skew(w)).reshape(-1)
     # I is not a matrix, but a vector
+    # Ix, Iy, Iz = I
+    # wd1 = (Iz - Iy)*w[1]*w[2] / Ix
+    # wd2 = (Ix - Iz)*w[0]*w[2] / Iy
+    # wd3 = (Iy - Ix)*w[0]*w[1] / Iz
+    # wd = np.array((wd1, wd2, wd3))
+    wd = -skew(w)@np.diag(I)@w / I + M_w / I
+    return np.concatenate((rd, wd))
+
+def attitude_dynamics_no_moment_controller(t, y, I, desired_attitude):
+    # Dim: 12
+    r_mat = y[:9].reshape(3, 3)
+    w = y[9:12]
+
+    M_w = attitude_controller(Rotation.from_matrix(r_mat), 
+                                    desired_attitude, 
+                                    curr_omega=w, 
+                                    desired_omega=np.array([0, 0, 0]), 
+                                    J=I, p=7/5, k1 = 14, k2=2.3)
+
+    rd = (r_mat @ skew(w)).reshape(-1)
+    # I is not a matrix, but a vector
     wd = -skew(w)@np.diag(I)@w / I + M_w / I
 
-    # yd = np.zeros((len(y)))
-    # yd[:9] = rd
-    # yd[9:12] = wd
     return np.concatenate((rd, wd))
 
 def attitude_dynamics_w_moment(t, y, M_w, I, mu, r):
@@ -67,10 +86,10 @@ def attitude_wheels(t, y, M_w, I, I_wheels):
 def full_sat(t, y, args):
     F, M, m, I, mu, I_wheels = args
     rot_m = y[6:15].reshape(3, 3)
-    F = F*rot_m@np.array((1, 0, 0))
+    F = F*rot_m[:, 0]
     orbit_states_d = orbit_dynamics(t, y[:6], F, m, mu)
     attitude_states_d = attitude_dynamics_no_moment(t, y[6:18], M, I)
-    wheels_d = wheel_dynamics(t, y[18:21], -M, I_wheels)
+    wheels_d = wheel_dynamics(t, y[18:24], -M, I_wheels)
 
     return np.concatenate((orbit_states_d, attitude_states_d, wheels_d))
 

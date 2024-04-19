@@ -4,6 +4,7 @@ from matplotlib import pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib.patches import FancyArrowPatch
 from mpl_toolkits.mplot3d import proj3d
+import pickle
 
 class Arrow3D(FancyArrowPatch):
     def __init__(self, xs, ys, zs, *args, **kwargs):
@@ -27,8 +28,6 @@ def angle_vecs(vec1, vec2):
 
 def vec2att(vec, att):
     # Assumes it lines up x vector
-    # https://stackoverflow.com/questions/5188561/signed-angle-between-two-3d-vectors-with-same-origin-within-the-same-plane
-    # https://math.stackexchange.com/questions/284772/how-can-i-break-down-a-rotation-of-known-amount-around-a-known-axis-into-two-rot
     vec = vec / nlg.norm(vec)
     v3 = np.cross(vec, att[:, 1])
     v2 = np.cross(v3, vec)
@@ -42,6 +41,15 @@ def visualize_orn(rot_mat, ax, c='b'):
                 lw=3, arrowstyle="-|>", color=c)
         ax.add_artist(a)
 
+def save_data(data, data_file='data/run1.p'):
+    with open(data_file, 'wb') as f:
+        pickle.dump(data, f)
+    return data_file
+
+def load_data(data_file):
+    with open(data_file, 'rb') as f:
+        data = pickle.load(f)
+    return data
 
 def main():
     pass
