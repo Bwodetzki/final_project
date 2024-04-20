@@ -18,7 +18,7 @@ def deorbit(t, y, args):
     
 def orbit_dynamics(t, y, F, m, mu):
     r_mag = nlg.norm(y[:3])
-    rdd = -mu/r_mag**3 * y[:3] + F/m/1000
+    rdd = -mu/r_mag**3 * y[:3] + F/m
 
     # yd = np.zeros((len(y)))
     # yd[:3] = y[3:6]
@@ -64,8 +64,8 @@ def attitude_dynamics_w_moment(t, y, M_w, I, mu, r):
 
     rd = (r_mat @ skew(w)).reshape(-1)
     # I is not a matrix, but a vector
-    mu = mu*1000**3
-    r = r*1000  #  # Convert to m from km
+    # mu = mu*1000**3
+    # r = r*1000  #  # Convert to m from km
     r_mag = nlg.norm(r)
     wd = -skew(w)@np.diag(I)@w / I + M_w / I + 3*mu/r_mag**5 * skew(r)@I*r/I
 
@@ -105,7 +105,7 @@ def full_sat_moment(t, y, args):
     orbit_states_d = orbit_dynamics(t, y[:6], F, m, mu)
     r = rot_m@y[:3]
     attitude_states_d = attitude_dynamics_w_moment(t, y[6:18], M, I, mu, r)
-    wheels_d = wheel_dynamics(t, y[18:21], -M, I_wheels)
+    wheels_d = wheel_dynamics(t, y[18:24], -M, I_wheels)
 
     return np.concatenate((orbit_states_d, attitude_states_d, wheels_d))
 

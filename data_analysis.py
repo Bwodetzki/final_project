@@ -6,8 +6,24 @@ from simulation import RunData
 from helper_func import vec2att
 from scipy.spatial.transform import Rotation
 
+def mc_analysis():
+    fname = 'data/mc_trial3.p'
+    dxs_full = np.array(load_data(fname))
+    # Parse data
+    # Find average distance
+    dxs = nlg.norm(dxs_full[:,:,:3], axis=2)
+    means = np.mean(dxs, axis=0)
+    stds = np.std(dxs, axis=0)
+    fig, ax = plt.subplots()
+    ax.plot((means+2*stds), alpha=0.8, linewidth=0.5, c='orange')
+    ax.plot((means-2*stds), alpha=0.8, linewidth=0.5, c='orange')
+    for i in range(100):
+        ax.plot(dxs[i, :], alpha=0.1, linewidth=0.25, c='mediumblue')
+    ax.plot(means, 'b')
+    plt.show()
+
 def main():
-    filename = f'data/testrun.p'
+    filename = f'data/testrun_2.p'
     run_data = load_data(filename)
     len_data = len(run_data.sat1_states)
 
@@ -26,8 +42,7 @@ def main():
 
     wheel_states = run_data.sat2_states[:, 18:24]
 
-
-
+    control_errors = nlg.norm(run_data.thrust_vecs - actual_controls, axis=1)
 
 
     ## Plot Results
@@ -91,7 +106,11 @@ def main():
     ax8.plot(run_data.torques[:, 2])
     ax8.set_title('torques on wheels')
 
+    fig9, ax9 = plt.subplots()
+    ax9.plot(control_errors)
+
     plt.show()
 
 if __name__ == "__main__":
-    main()
+    mc_analysis()
+    # main()

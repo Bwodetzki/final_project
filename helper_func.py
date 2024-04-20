@@ -53,6 +53,11 @@ def save_data(data, data_file='data/run1.p'):
         pickle.dump(data, f)
     return data_file
 
+def append_data(data, data_file='data/run1.p'):
+    with open(data_file, 'ab') as f:
+        pickle.dump(data, f)
+    return data_file
+
 def load_data(data_file):
     with open(data_file, 'rb') as f:
         data = pickle.load(f)
