@@ -1,8 +1,9 @@
 import numpy as np
 import numpy.linalg as nlg
 import matplotlib.pyplot as plt
-from scipy.spatial.transform import Rotation
 import dynamics as dyn
+import argparse as arg
+from scipy.spatial.transform import Rotation
 from helper_func import vec2att, visualize_orn, save_data, append_data, Arrow3D, normalize
 from scipy.integrate import solve_ivp
 from scipy.linalg import solve_discrete_are, block_diag
@@ -23,7 +24,7 @@ class RunData:
 
 MU = 398600.4418*1000**3
 
-def satellite_sim(sat1_state, sat2_state, tf, dt, plot=True):
+def satellite_sim(sat1_state, sat2_state, moment_sigma, tf, dt, plot=True):
     # sat1_state: np.array [pos, vel] in R^6
     # sat2_state: np.array [pos, vel, rotmat, omega] in R^18
     # Modify state to include wheel angles and speeds
@@ -45,7 +46,7 @@ def satellite_sim(sat1_state, sat2_state, tf, dt, plot=True):
     # else:
     #     dynamics = full_sat
     sat1_dynamics = partial(dyn.orbit_dynamics, F=0., m=1., mu=MU)
-    sat2_dynamics = dyn.full_sat_moment
+    sat2_dynamics = dyn.full_sat
 
     ## Initialize Orbit Controller
     # Controller Weights
@@ -95,7 +96,7 @@ def satellite_sim(sat1_state, sat2_state, tf, dt, plot=True):
     int_args = (np.array((0, 0, 0)), np.array((0, 0, 0)))
 
     sigma = 1e-5
-    noise = np.random.standard_normal((3,))*sigma
+    noise = np.random.standard_normal((3,))*moment_sigma
     # print(noise)
     ## Sim Loop
     for i in (range(int(tf/dt))):
@@ -220,7 +221,7 @@ def attitude_sim(init_state, tf, dt, attitude_controller):
         # torques = np.array([0.0, 0.0, 0.0])
         # torques[2] = -torques[2]
         torque_noise = np.ones((3,))*1
-        torques = torques + torque_noise
+        # torques = torques + torque_noise
         torques_l.append(torques)
 
         # Integrator
@@ -416,16 +417,16 @@ def orbit_control_sat_sim_MPC(sat1_state, sat2_state, tf, dt):
 
 
 def main():
-    # r = Rotation.from_euler('xyz', [1, 1, 1], degrees=True)
-    # init_rot = r.as_matrix().flatten()# np.eye(3).flatten()
-    # init_w = np.array((0.0, 0.0, 0.0)) # np.zeros((3,))
-    # init_state = np.concatenate((init_rot, init_w))
-    # attitude_sim(
-    #     init_state=init_state,
-    #     tf = 300, 
-    #     dt = 0.1,
-    #     attitude_controller=attitude_controller
-    # )
+    r = Rotation.from_euler('xyz', [1, 1, 1], degrees=True)
+    init_rot = r.as_matrix().flatten()# np.eye(3).flatten()
+    init_w = np.array((0.0, 0.0, 0.0)) # np.zeros((3,))
+    init_state = np.concatenate((init_rot, init_w))
+    attitude_sim(
+        init_state=init_state,
+        tf = 20, 
+        dt = 0.1,
+        attitude_controller=attitude_controller
+    )
 
     # r_e = 6_378  # km
     # mu = 398600.4418
@@ -436,6 +437,25 @@ def main():
     # sat2_state = block_diag(R.as_matrix(),R.as_matrix()) @ np.array([y10, 0, 0, 0, y2d0, 0])*1000
     # orbit_control_sat_sim_MPC(sat1_state, sat2_state, tf=2000, dt=0.1)
 
+    # # Positional States
+    # r_e = 6_378  # km
+    # mu = 398600.4418
+    # y10 = r_e + 408.773
+    # y2d0 = np.sqrt(mu/y10)
+    # R = Rotation.from_euler('xyz', [0.0, 0.0, 0.01], degrees=True)
+    # sat1_state = np.array([y10, 0, 0, 0, y2d0, 0])*1000
+    # sat2_state_pos = block_diag(R.as_matrix(),R.as_matrix()) @ np.array([y10, 0, 0, 0, y2d0, 0])*1000
+    
+    # # Attitude States
+    # r = Rotation.from_euler('xyz', [0, 0, 0.1])
+    # init_rot = r.as_matrix().flatten() # np.eye(3).flatten()
+    # init_w = np.array((0.0, 0.0, 0.0)) # np.zeros((3,))
+    # sat2_state = np.concatenate((sat2_state_pos, init_rot, init_w))
+
+    # dxs = satellite_sim(sat1_state, sat2_state, tf=300, dt=.1, plot=False)
+    # return dxs
+
+def main_sim(moment_sigma):
     # Positional States
     r_e = 6_378  # km
     mu = 398600.4418
@@ -451,18 +471,35 @@ def main():
     init_w = np.array((0.0, 0.0, 0.0)) # np.zeros((3,))
     sat2_state = np.concatenate((sat2_state_pos, init_rot, init_w))
 
-    dxs = satellite_sim(sat1_state, sat2_state, tf=300, dt=.1, plot=False)
+    dxs = satellite_sim(sat1_state, sat2_state, moment_sigma=moment_sigma, tf=300, dt=.1, plot=False)
     return dxs
 
-if __name__ == "__main__":
+def mc_sim(args):
     np.random.seed(0)
     dxs_list = []
+    monte_carlo_file = args.fname
     for i in tqdm(range(100)):
-        dxs = main()
+        dxs = main_sim(args.sigma)
         dxs_list.append(dxs)
-        monte_carlo_file = 'data/mc_trial4_sig_1e5.p'
         save_data(dxs_list, monte_carlo_file)
     dxs = np.array(dxs_list)
+
+if __name__ == "__main__":
+    # Parse Args
+    parser = arg.ArgumentParser()
+    parser.add_argument('--sigma', type=float, default=0, help="The standard deviation of the moments on the satellite")
+    parser.add_argument('--fname', type=str, default='data/fname.pk', help="The filename of the data to be saved")
+    args = parser.parse_args()
+    mc_sim(args)
+
+    # np.random.seed(0)
+    # dxs_list = []
+    # for i in tqdm(range(100)):
+    #     dxs = main()
+    #     dxs_list.append(dxs)
+    #     monte_carlo_file = 'data/mc_trial4_sig_1e5.p'
+    #     save_data(dxs_list, monte_carlo_file)
+    # dxs = np.array(dxs_list)
     # main()
     
     # # Parse data

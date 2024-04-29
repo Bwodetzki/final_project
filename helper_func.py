@@ -18,6 +18,7 @@ class Arrow3D(FancyArrowPatch):
 
         return np.min(zs)
 
+
 def normalize(rotmat):
     rotmat = rotmat.reshape(3, 3)
     for i in range(3):

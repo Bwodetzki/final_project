@@ -31,37 +31,54 @@ def attitude_controller(curr_orn, desired_orn, curr_omega, desired_omega, J, p=7
     torques = term1 + term2 + term3 + term4
     return torques
 
-def quat_inv(quat):
+def quat_inv(quat): # Not actually the inverse
     quat[:3] = -quat[:3]
     return quat/nlg.norm(quat)
 
 def attitude_controller_v2(curr_orn, desired_orn, curr_omega, kp=10, kd=10):
-    # corn = curr_orn.as_quat(canonical=True)
-    # dorn = desired_orn.as_quat(canonical=True)
+    """
+    Attitude controller function, computes torque based on current and desired orientations and angular velocity.
 
-    eorn = desired_orn.inv()*curr_orn
-    # eorn = eorn.as_mrp()
+    Parameters:
+    curr_orn (Quaternion): Current orientation of the spacecraft
+    desired_orn (Quaternion): Desired orientation of the spacecraft
+    curr_omega (array-like): Current angular velocity of the spacecraft
+    kp (float, optional): Proportional gain (default=10)
+    kd (float, optional): Derivative gain (default=10)
+
+    Returns:
+    torque (array-like): Computed torque, saturated to a limit of 10
+    """
+    # eorn = desired_orn.inv() * curr_orn
+    eorn =  curr_orn.inv() * desired_orn
     eorn = eorn.as_quat()
-    # eorn = curr_orn.as_quat(canonical=True)
-    # eorn = dorn*quat_inv(corn)
-    torque = -kp*eorn[:3] - kd*curr_omega
-
+    torque = kp * eorn[:3] - kd * curr_omega
     return saturate(torque, limit=10)
 
 def attitude_controller_v3(curr_orn, desired_orn, curr_omega, int_args, kp=10, kd=10, ki=1):
-    # corn = curr_orn.as_quat(canonical=True)
-    # dorn = desired_orn.as_quat(canonical=True)
+    """
+    Attitude controller function, computes torque based on current and desired orientations and angular velocity.
+
+    Parameters:
+    curr_orn (Quaternion): Current orientation of the spacecraft
+    desired_orn (Quaternion): Desired orientation of the spacecraft
+    curr_omega (array-like): Current angular velocity of the spacecraft
+    int_args (tuple): Previous quaternion and integrated quaternion
+    kp (float, optional): Proportional gain (default=10)
+    kd (float, optional): Derivative gain (default=10)
+    ki (float, optional): Integral gain (default=1)
+
+    Returns:
+    torque (array-like): Computed torque
+    new_int_args (tuple): Updated quaternion and integrated quaternion
+    """
     prev_quat, prev_int = int_args
-
-    eorn = desired_orn.inv()*curr_orn
-    # eorn = eorn.as_mrp()
+    eorn = desired_orn.inv() * curr_orn
     eorn = eorn.as_quat()
-    integrated_quat = 1/2*(eorn[:3] - prev_quat) + prev_quat + prev_int
-    # eorn = curr_orn.as_quat(canonical=True)
-    # eorn = dorn*quat_inv(corn)
-    torque = -kp*eorn[:3] - kd*curr_omega + ki*integrated_quat
-
+    integrated_quat = 0.5 * (eorn[:3] - prev_quat) + prev_quat + prev_int
+    torque = -kp * eorn[:3] - kd * curr_omega + ki * integrated_quat
     return torque, (eorn[:3], integrated_quat)
+
 
 def CW_model(n, dt):
     Phi_rr = np.array([[4-3*np.cos(n*dt)       , 0, 0           ],

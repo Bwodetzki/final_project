@@ -98,7 +98,11 @@ def full_sat(t, y, args):
 
     return np.concatenate((orbit_states_d, attitude_states_d, wheels_d))
 
+# Comment the function below
 def full_sat_moment(t, y, args):
+    '''
+    #complete this
+    '''
     F, M, m, I, mu, I_wheels = args
     rot_m = y[6:15].reshape(3, 3)
     F = F*rot_m@np.array((1, 0, 0))

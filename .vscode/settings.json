@@ -1,0 +1,7 @@
+{
+    "CodeGPT.apiKey": "Groq",
+    "CodeGPT.Autocomplete.provider": "Ollama - llama3:70b-instruct",
+    "CodeGPT.Autocomplete.enabled": true,
+    "CodeGPT.Autocomplete.suggestionDelay": 630,
+    "CodeGPT.Autocomplete.maxTokens": 3420
+}

@@ -7,7 +7,7 @@ from helper_func import vec2att
 from scipy.spatial.transform import Rotation
 
 def mc_analysis():
-    fname = 'data/mc_trial3.p'
+    fname = 'data/actual/mc_1e_4_moment'
     dxs_full = np.array(load_data(fname))
     # Parse data
     # Find average distance
@@ -15,11 +15,12 @@ def mc_analysis():
     means = np.mean(dxs, axis=0)
     stds = np.std(dxs, axis=0)
     fig, ax = plt.subplots()
-    ax.plot((means+2*stds), alpha=0.8, linewidth=0.5, c='orange')
-    ax.plot((means-2*stds), alpha=0.8, linewidth=0.5, c='orange')
-    for i in range(100):
+    ax.plot((means+1*stds), alpha=0.8, linewidth=0.5, c='orange')
+    ax.plot((means-1*stds), alpha=0.8, linewidth=0.5, c='orange')
+    for i in range(50):
         ax.plot(dxs[i, :], alpha=0.1, linewidth=0.25, c='mediumblue')
     ax.plot(means, 'b')
+    ax.set_title('Monte Carlo Trial With Moment $M \sim \mathcal{N}(0, 1e^{-4})$ \n 1000 Trajectories')
     plt.show()
 
 def main():
