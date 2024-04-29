@@ -7,7 +7,8 @@ from helper_func import vec2att
 from scipy.spatial.transform import Rotation
 
 def mc_analysis():
-    fname = 'data/actual/mc_1e_4_moment'
+    fname = 'data/actual/mc_machineeps_1e_16_moment.pk'
+    # fname = f'data/testrun.pk'
     dxs_full = np.array(load_data(fname))
     # Parse data
     # Find average distance
@@ -24,7 +25,10 @@ def mc_analysis():
     plt.show()
 
 def main():
-    filename = f'data/testrun_2.p'
+    # filename = f'data/fname.pk'
+    filename = f'data/actual/default_w_gravmoment.pk'
+    filename = f'data/actual/low_thrust_0.01thrust_2000time_true.pk'
+
     run_data = load_data(filename)
     len_data = len(run_data.sat1_states)
 
@@ -113,5 +117,5 @@ def main():
     plt.show()
 
 if __name__ == "__main__":
-    mc_analysis()
-    # main()
+    # mc_analysis()
+    main()

@@ -24,7 +24,7 @@ class RunData:
 
 MU = 398600.4418*1000**3
 
-def satellite_sim(sat1_state, sat2_state, moment_sigma, tf, dt, plot=True):
+def satellite_sim(sat1_state, sat2_state, moment_sigma, moment, lim, fname, tf, dt, plot=True):
     # sat1_state: np.array [pos, vel] in R^6
     # sat2_state: np.array [pos, vel, rotmat, omega] in R^18
     # Modify state to include wheel angles and speeds
@@ -46,7 +46,10 @@ def satellite_sim(sat1_state, sat2_state, moment_sigma, tf, dt, plot=True):
     # else:
     #     dynamics = full_sat
     sat1_dynamics = partial(dyn.orbit_dynamics, F=0., m=1., mu=MU)
-    sat2_dynamics = dyn.full_sat
+    if moment:
+        sat2_dynamics = dyn.full_sat_moment
+    else:
+        sat2_dynamics = dyn.full_sat
 
     ## Initialize Orbit Controller
     # Controller Weights
@@ -66,11 +69,11 @@ def satellite_sim(sat1_state, sat2_state, moment_sigma, tf, dt, plot=True):
     CW_mat = CW_model(n, dt)
     # MPC
     dx = sat2_state[:6] - sat1_state[:6] # Initialization
-    umin = -1*np.ones(3) # minimum thrust
-    umax = 1*np.ones(3) # maximum thrust
+    umin = -lim*np.ones(3) # minimum thrust
+    umax = lim*np.ones(3) # maximum thrust
     # umin = -0.001*np.ones(3) # minimum thrust
     # umax = 0.001*np.ones(3) # maximum thrust
-    Np = 2000 # int(tf/dt * (0.3)) # Horizon is a fraction of simulation steps
+    Np = 4000 # int(tf/dt * (0.3)) # Horizon is a fraction of simulation steps
     K = MPCController(CW_mat, B, Np=Np, x0=dx,
                   Qx=Q, Qu=R,QDu=Rd,
                   umin=umin,umax=umax)
@@ -83,7 +86,7 @@ def satellite_sim(sat1_state, sat2_state, moment_sigma, tf, dt, plot=True):
     # sat2_state[6:15] = desired_attitude.flatten()
 
     ## Initialize Attitude Controller
-    attitude_controller = partial(attitude_controller_v2, kp=50, kd=30)
+    attitude_controller = partial(attitude_controller_v2, kp=100, kd=30)
     # attitude_controller = partial(attitude_controller_v2, kp=np.array((100, 100, 500)), kd=np.array((10, 10, 50)))
 
     ## Pre-sim Initializations
@@ -151,7 +154,7 @@ def satellite_sim(sat1_state, sat2_state, moment_sigma, tf, dt, plot=True):
         thrust_vecs = thrust_vecs,
         torques = torques)
 
-    file_name = f'data/testrun_2.p'
+    file_name = fname# f'data/testrun_2.p'
     save_data(curr_run, file_name)
     dxs = np.array(relative_dist)
 
@@ -455,7 +458,7 @@ def main():
     # dxs = satellite_sim(sat1_state, sat2_state, tf=300, dt=.1, plot=False)
     # return dxs
 
-def main_sim(moment_sigma):
+def main_sim(args):
     # Positional States
     r_e = 6_378  # km
     mu = 398600.4418
@@ -471,7 +474,11 @@ def main_sim(moment_sigma):
     init_w = np.array((0.0, 0.0, 0.0)) # np.zeros((3,))
     sat2_state = np.concatenate((sat2_state_pos, init_rot, init_w))
 
-    dxs = satellite_sim(sat1_state, sat2_state, moment_sigma=moment_sigma, tf=300, dt=.1, plot=False)
+    if args.mc:
+        fname = 'data/testrun.pk'
+    else:
+        fname = args.fname
+    dxs = satellite_sim(sat1_state, sat2_state, moment_sigma=args.sigma, moment=args.moment, lim=args.lim, fname=fname, tf=args.tf, dt=.1, plot=False)
     return dxs
 
 def mc_sim(args):
@@ -479,18 +486,25 @@ def mc_sim(args):
     dxs_list = []
     monte_carlo_file = args.fname
     for i in tqdm(range(100)):
-        dxs = main_sim(args.sigma)
+        dxs = main_sim(args)
         dxs_list.append(dxs)
         save_data(dxs_list, monte_carlo_file)
-    dxs = np.array(dxs_list)
 
 if __name__ == "__main__":
     # Parse Args
     parser = arg.ArgumentParser()
     parser.add_argument('--sigma', type=float, default=0, help="The standard deviation of the moments on the satellite")
     parser.add_argument('--fname', type=str, default='data/fname.pk', help="The filename of the data to be saved")
+    parser.add_argument('--mc', type=int, default=0, help="whether to use monte carlo")
+    parser.add_argument('--lim', type=float, default=0.01, help="control limit")
+    parser.add_argument('--moment', type=int, default=0, help="whether to use moment dynamics")
+    parser.add_argument('--tf', type=int, default=300, help="sim time")
     args = parser.parse_args()
-    mc_sim(args)
+
+    if args.mc:
+        mc_sim(args)
+    else:
+        dxs = main_sim(args)
 
     # np.random.seed(0)
     # dxs_list = []

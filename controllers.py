@@ -49,9 +49,9 @@ def attitude_controller_v2(curr_orn, desired_orn, curr_omega, kp=10, kd=10):
     Returns:
     torque (array-like): Computed torque, saturated to a limit of 10
     """
-    # eorn = desired_orn.inv() * curr_orn
-    eorn =  curr_orn.inv() * desired_orn
-    eorn = eorn.as_quat()
+    eorn = desired_orn.inv() * curr_orn
+    # eorn =  curr_orn.inv() * desired_orn
+    eorn = -eorn.as_quat()
     torque = kp * eorn[:3] - kd * curr_omega
     return saturate(torque, limit=10)
 
