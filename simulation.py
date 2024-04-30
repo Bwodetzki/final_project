@@ -73,7 +73,7 @@ def satellite_sim(sat1_state, sat2_state, moment_sigma, moment, lim, fname, tf, 
     umax = lim*np.ones(3) # maximum thrust
     # umin = -0.001*np.ones(3) # minimum thrust
     # umax = 0.001*np.ones(3) # maximum thrust
-    Np = 4000 # int(tf/dt * (0.3)) # Horizon is a fraction of simulation steps
+    Np = 2_000 # int(tf/dt * (0.3)) # Horizon is a fraction of simulation steps
     K = MPCController(CW_mat, B, Np=Np, x0=dx,
                   Qx=Q, Qu=R,QDu=Rd,
                   umin=umin,umax=umax)
@@ -86,7 +86,7 @@ def satellite_sim(sat1_state, sat2_state, moment_sigma, moment, lim, fname, tf, 
     # sat2_state[6:15] = desired_attitude.flatten()
 
     ## Initialize Attitude Controller
-    attitude_controller = partial(attitude_controller_v2, kp=100, kd=30)
+    attitude_controller = partial(attitude_controller_v2, kp=50, kd=30)
     # attitude_controller = partial(attitude_controller_v2, kp=np.array((100, 100, 500)), kd=np.array((10, 10, 50)))
 
     ## Pre-sim Initializations
@@ -116,11 +116,6 @@ def satellite_sim(sat1_state, sat2_state, moment_sigma, moment, lim, fname, tf, 
                                     desired_attitude, 
                                     curr_omega=sat2_state[15:18])
         torque = torque + noise
-        # torque, int_args = attitude_controller_v3(current_attitude, 
-        #                             desired_attitude, 
-        #                             curr_omega=sat2_state[15:18], 
-        #                             int_args=int_args,
-        #                             kp=200, kd=20, ki=1)
 
         # Integrate Sat1
         sat1_sol = solve_ivp(sat1_dynamics, [0, dt], sat1_state, **options)
@@ -496,7 +491,7 @@ if __name__ == "__main__":
     parser.add_argument('--sigma', type=float, default=0, help="The standard deviation of the moments on the satellite")
     parser.add_argument('--fname', type=str, default='data/fname.pk', help="The filename of the data to be saved")
     parser.add_argument('--mc', type=int, default=0, help="whether to use monte carlo")
-    parser.add_argument('--lim', type=float, default=0.01, help="control limit")
+    parser.add_argument('--lim', type=float, default=1, help="control limit")
     parser.add_argument('--moment', type=int, default=0, help="whether to use moment dynamics")
     parser.add_argument('--tf', type=int, default=300, help="sim time")
     args = parser.parse_args()

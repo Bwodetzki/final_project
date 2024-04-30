@@ -7,6 +7,7 @@ from helper_func import vec2att
 from scipy.spatial.transform import Rotation
 
 def mc_analysis():
+    fname = 'data/actual/mc_1e_4_moment'
     fname = 'data/actual/mc_machineeps_1e_16_moment.pk'
     # fname = f'data/testrun.pk'
     dxs_full = np.array(load_data(fname))
@@ -15,19 +16,27 @@ def mc_analysis():
     dxs = nlg.norm(dxs_full[:,:,:3], axis=2)
     means = np.mean(dxs, axis=0)
     stds = np.std(dxs, axis=0)
+
+    time = np.arange(0, len(means)*0.1, 0.1)
     fig, ax = plt.subplots()
-    ax.plot((means+1*stds), alpha=0.8, linewidth=0.5, c='orange')
-    ax.plot((means-1*stds), alpha=0.8, linewidth=0.5, c='orange')
+    ax.plot(time, (means+1*stds), alpha=0.8, linewidth=0.5, c='orange', label='$1\sigma$ bounds')
+    ax.plot(time, (means-1*stds), alpha=0.8, linewidth=0.5, c='orange')
     for i in range(50):
-        ax.plot(dxs[i, :], alpha=0.1, linewidth=0.25, c='mediumblue')
-    ax.plot(means, 'b')
-    ax.set_title('Monte Carlo Trial With Moment $M \sim \mathcal{N}(0, 1e^{-4})$ \n 1000 Trajectories')
+        ax.plot(time, dxs[i, :], alpha=0.1, linewidth=0.25, c='mediumblue')
+    ax.plot(time, means, 'b', label='mean')
+    ax.set_title('Monte Carlo Trial With Moment $M \sim \mathcal{N}(0, 1e^{-16})$ \n 100 Trajectories')
+    ax.set_xlabel('Time (s)')
+    ax.set_ylabel('Relative Position (m)')
+    ax.set_ylim([-100, 2000])
+    ax.legend()
     plt.show()
 
 def main():
     # filename = f'data/fname.pk'
     filename = f'data/actual/default_w_gravmoment.pk'
     filename = f'data/actual/low_thrust_0.01thrust_2000time_true.pk'
+    # filename = f'data/actual/baseline.pk'
+
 
     run_data = load_data(filename)
     len_data = len(run_data.sat1_states)
@@ -49,6 +58,7 @@ def main():
 
     control_errors = nlg.norm(run_data.thrust_vecs - actual_controls, axis=1)
 
+    time = np.arange(0, len_data*0.1, 0.1)
 
     ## Plot Results
     # Plot the relative trajectory
@@ -56,24 +66,32 @@ def main():
     ax = fig.add_subplot(projection='3d')
     dxs = run_data.relative_dist
     ax.plot(dxs[:, 0], dxs[:, 1], dxs[:, 2])
+    ax.plot(dxs[-1, 0], dxs[-1, 1], dxs[-1, 2], 'ro', label="Target")
+    ax.plot(dxs[0, 0], dxs[0, 1], dxs[0, 2], 'go', label="Start")
+    ax.legend()
     ax.set_title('relative trajectory')
 
     # Plot the norm of the error vector
     fig1, ax1 = plt.subplots()
-    ax1.plot(nlg.norm(dxs, axis=1))
+    ax1.plot(time, nlg.norm(dxs, axis=1))
+    ax1.set_xlabel('Time (s)')
+    ax1.set_ylabel('Relative Position (m)')
     ax1.set_title('norm of position error')
 
     # Plot the desired control vs actual in each axis
     us = run_data.thrust_vecs
     fig2, ax2 = plt.subplots()
-    ax2.plot(us[:, 0], 'b')
-    ax2.plot(us[:, 1], 'b')
-    ax2.plot(us[:, 2], 'b')
+    # ax2.plot(time, us[:, 0], 'b')
+    ax2.plot(time, us[:, 1], 'b', label='Desired Control')
+    # ax2.plot(time, us[:, 2], 'b')
 
-    ax2.plot(actual_controls[:, 0], 'r')
-    ax2.plot(actual_controls[:, 1], 'r')
-    ax2.plot(actual_controls[:, 2], 'r')
+    # ax2.plot(time, actual_controls[:, 0], 'r')
+    ax2.plot(time, actual_controls[:, 1], 'r', label='Actual Control')
+    # ax2.plot(time, actual_controls[:, 2], 'r')
+    ax2.set_xlabel('Time (s)')
+    ax2.set_ylabel('Thrust (N)')
     ax2.set_title('Desired (b) vs Actual (r) control vector')
+    ax2.legend()
 
     # fig3, ax3 = plt.subplots()
     # ax3.plot(rotation_errors[:, 0])
@@ -82,10 +100,12 @@ def main():
     # ax3.set_title('rotation errors')
 
     fig4, ax4 = plt.subplots()
-    ax4.plot(wheel_states[:, 3])
-    ax4.plot(wheel_states[:, 4])
-    ax4.plot(wheel_states[:, 5])
+    # ax4.plot(time, wheel_states[:, 3])
+    ax4.plot(time, wheel_states[:, 4])
+    # ax4.plot(time, wheel_states[:, 5])
     ax4.set_title('wheel velocities')
+    ax4.set_xlabel('Time (s)')
+    ax4.set_ylabel('Reaction Wheel Velocity (rad/s)')
 
     fig5, ax5 = plt.subplots()
     ax5.plot(eorns[:, 0])
@@ -117,5 +137,5 @@ def main():
     plt.show()
 
 if __name__ == "__main__":
-    # mc_analysis()
-    main()
+    mc_analysis()
+    # main()
